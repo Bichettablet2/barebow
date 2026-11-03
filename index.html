@@ -5,12 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Barebow">
+<meta name="theme-color" content="#1e1e28">
+<meta name="description" content="Registro de puntuaciones de tiro con arco barebow: sala 18m y exterior 50m.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Barebow Tracker</title>
 <style>
   :root {
     --purple: #6d4aff;
+    --purple-2: #8f75ff;
     --bg: #121218;
     --card: #1e1e28;
+    --line: #2a2a38;
     --text: #f2f2f7;
     --muted: #9a9aad;
     --gold: #ffc64d;
@@ -18,10 +27,12 @@
     --red: #ff5b5b;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
   body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
   .header {
-    background: var(--card); padding: 14px; display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 2px solid #2a2a38; position: sticky; top: 0; z-index: 10;
+    background: var(--card); padding: 14px; padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid var(--line); position: sticky; top: 0; z-index: 10;
   }
   .header h1 { font-size: 1.1rem; color: var(--purple); }
   .total-score { text-align: right; }
@@ -36,11 +47,21 @@
   .round-chip { background: var(--card); padding: 6px 12px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
   .round-chip.highlight { color: var(--gold); border: 1px solid var(--gold); }
 
+  /* Selector de número de flecha */
+  .num-row { display: flex; align-items: center; gap: 6px; padding: 4px 10px; overflow-x: auto; }
+  .num-row .lbl { font-size: .7rem; color: var(--muted); white-space: nowrap; margin-right: 2px; }
+  .num-chip {
+    flex: 0 0 auto; min-width: 36px; height: 36px; border-radius: 18px; border: 1px solid #34344a;
+    background: var(--card); color: var(--text); font-weight: 700; cursor: pointer;
+  }
+  .num-chip.used { opacity: .35; }
+  .num-chip.sel { background: var(--purple); border-color: var(--purple); color: #fff; opacity: 1; }
+
   .target-container {
     display: flex; justify-content: center; padding: 15px; margin: 10px;
     background: radial-gradient(circle, #1a1a24 0%, #121218 70%); border-radius: 16px;
   }
-  .target { width: 320px; height: 320px; position: relative; cursor: crosshair; touch-action: manipulation; }
+  .target { width: 100%; max-width: 380px; aspect-ratio: 1; position: relative; cursor: crosshair; touch-action: manipulation; }
 
   .stats-row { display: flex; gap: 8px; padding: 10px; }
   .stat-card { flex: 1; background: var(--card); border-radius: 10px; padding: 12px; text-align: center; }
@@ -64,31 +85,130 @@
   .btn-primary { background: var(--purple); color: #fff; }
   .btn-secondary { background: var(--card); color: var(--text); border: 1px solid #34344a; }
   .btn:disabled { opacity: 0.35; pointer-events: none; }
+  .btn-miss { flex: 0 0 64px; background: var(--card); color: var(--red); border: 1px solid var(--red); }
 
   .hint { text-align: center; font-size: .75rem; color: var(--muted); padding: 10px; }
 
   .nav {
-    position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
+    position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); z-index: 10;
     display: flex; justify-content: space-around; padding: 12px;
-    border-top: 1px solid #2a2a38;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--line);
   }
   .nav-btn { background: none; border: none; color: var(--muted); font-size: .7rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .nav-btn.active { color: var(--purple); }
   .nav-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; }
 
-  .screen { display: none; padding-bottom: 70px; }
+  .screen { display: none; padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
   .screen.active { display: block; }
 
   .history-item { background: var(--card); margin: 10px; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
   .history-item .left .date { font-weight: bold; font-size: .9rem; }
   .history-item .left .details { font-size: .7rem; color: var(--muted); margin-top: 4px; }
   .history-item .score { font-size: 1.2rem; font-weight: bold; color: var(--gold); }
+  .history-item.clickable { cursor: pointer; }
+  .history-item .go { font-size: .7rem; color: var(--purple-2); margin-top: 4px; }
 
-  .new-session-btn { width: 100%; margin: 10px; padding: 14px; background: var(--green); border: none; border-radius: 12px; color: #fff; font-weight: 700; font-size: 1rem; cursor: pointer; }
-
-  .error-banner {
-    background: var(--red); color: #fff; padding: 10px; text-align: center; font-size: .85rem; border-radius: 10px; margin: 10px;
+  /* Histórico: sesión en curso, sesiones guardadas, borrado */
+  .list-title { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 14px 14px 0; }
+  .sess-card { background: var(--card); margin: 10px; padding: 14px; border-radius: 12px; border: 1px solid var(--purple); }
+  .sess-card .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .sess-card .top b { font-size: .95rem; }
+  .sess-card .top .score { font-size: 1.2rem; font-weight: 700; color: var(--gold); }
+  .end-list { display: flex; flex-direction: column; }
+  .end-line { display: grid; grid-template-columns: 30px 1fr 34px auto; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: .85rem; }
+  .end-line:first-child { border-top: none; }
+  .end-line .no { color: var(--muted); font-size: .72rem; }
+  .end-line .arr { display: flex; gap: 4px; flex-wrap: wrap; }
+  .end-line .arr span { background: var(--bg); border-radius: 6px; padding: 1px 6px; font-weight: 700; font-size: .78rem; }
+  .end-line .tot { text-align: right; font-weight: 700; }
+  .end-line.pending { color: var(--muted); font-size: .75rem; grid-template-columns: 1fr; }
+  .del-btn {
+    background: none; border: 1px solid #4a3040; color: var(--red); border-radius: 8px;
+    padding: 6px 9px; font-size: .75rem; font-weight: 700; cursor: pointer; white-space: nowrap; min-height: 32px;
   }
+  .del-btn.armed { background: var(--red); border-color: var(--red); color: #fff; }
+  .sess-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .sess-actions .btn { flex: 1; padding: 11px; font-size: .85rem; }
+  .sess-actions .del-btn { flex: 1; padding: 11px; font-size: .85rem; }
+  .btn-save { background: var(--green); color: #fff; }
+  .history-item.saved { display: block; }
+  .history-item.saved .head { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .history-item.saved .chev { color: var(--muted); font-size: .8rem; margin-left: 8px; transition: transform .2s; display: inline-block; }
+  .history-item.saved.open .chev { transform: rotate(90deg); }
+  .history-item .detail { margin-top: 10px; padding-top: 6px; border-top: 1px solid var(--line); }
+  .history-item .note { font-size: .75rem; color: var(--muted); padding: 6px 0; }
+  .empty-cur { font-size: .8rem; color: var(--muted); background: var(--card); margin: 10px; padding: 14px; border-radius: 12px; text-align: center; }
+
+  /* Ajustes */
+  .settings { background: var(--card); margin: 10px; padding: 14px; border-radius: 10px; }
+  .settings h3 { font-size: .9rem; margin-bottom: 10px; }
+  .setting { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; font-size: .85rem; }
+  .setting small { display: block; color: var(--muted); font-size: .7rem; margin-top: 2px; }
+  .setting select { background: var(--bg); color: var(--text); border: 1px solid #34344a; border-radius: 8px; padding: 6px 8px; font-size: .9rem; }
+  .switch { position: relative; width: 46px; height: 28px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch span { position: absolute; inset: 0; background: #34344a; border-radius: 14px; transition: .2s; }
+  .switch span::before { content: ''; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+  .switch input:checked + span { background: var(--purple); }
+  .switch input:checked + span::before { transform: translateX(18px); }
+
+  /* ANÁLISIS */
+  .filters { display: flex; gap: 8px; padding: 10px 10px 0; flex-wrap: wrap; }
+  .seg { display: flex; background: var(--card); border-radius: 10px; padding: 3px; }
+  .seg button { border: none; background: none; color: var(--muted); padding: 7px 10px; border-radius: 8px; font-weight: 600; font-size: .8rem; cursor: pointer; }
+  .seg button.on { background: var(--purple); color: #fff; }
+  .filters select { flex: 1; min-width: 140px; background: var(--card); color: var(--text); border: none; border-radius: 10px; padding: 8px 10px; font-size: .85rem; font-weight: 600; }
+  .scope-note { font-size: .7rem; color: var(--muted); padding: 6px 12px 0; }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; }
+  .tile { background: var(--card); border-radius: 10px; padding: 10px 6px; text-align: center; }
+  .tile .label { font-size: .58rem; color: var(--muted); text-transform: uppercase; line-height: 1.2; }
+  .tile .value { font-size: 1.15rem; font-weight: 700; margin-top: 4px; }
+  .tile .unit { font-size: .65rem; color: var(--muted); font-weight: 400; }
+
+  .card { background: var(--card); margin: 10px; padding: 14px; border-radius: 12px; }
+  .card h3 { font-size: .95rem; margin-bottom: 2px; }
+  .card .sub { font-size: .72rem; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+  .card .caption { font-size: .78rem; color: var(--text); margin-top: 8px; line-height: 1.45; }
+  .card .caption .m { color: var(--muted); }
+
+  .group-svg { width: 100%; max-width: 340px; display: block; margin: 0 auto; }
+
+  .rows { display: flex; flex-direction: column; gap: 2px; }
+  .row {
+    display: grid; grid-template-columns: 44px 1fr 46px 92px; align-items: center; gap: 8px;
+    padding: 8px 6px; border-radius: 8px; font-size: .8rem; cursor: pointer;
+  }
+  .row.head { cursor: default; font-size: .62rem; color: var(--muted); text-transform: uppercase; padding-block: 2px; }
+  .row.sel { background: #2a2a3a; }
+  .row .name { font-weight: 700; }
+  .row .name small { display: block; font-weight: 400; font-size: .62rem; color: var(--muted); }
+  .bar { position: relative; height: 18px; display: flex; align-items: center; }
+  .bar i { display: block; height: 10px; border-radius: 0 4px 4px 0; background: var(--purple); min-width: 2px; }
+  .bar b { font-size: .78rem; margin-left: 6px; font-weight: 700; }
+  .delta.up { color: var(--green); }
+  .delta.down { color: var(--red); }
+  .delta, .off { font-variant-numeric: tabular-nums; font-size: .75rem; }
+  .off { color: var(--muted); }
+  .flag { color: var(--gold); font-weight: 700; }
+
+  .dist-row { display: grid; grid-template-columns: 26px 1fr 64px; gap: 8px; align-items: center; font-size: .78rem; padding: 2px 0; }
+  .dist-row .k { font-weight: 700; text-align: center; }
+  .dist-row .bar i { border: 1px solid #555; }
+  .dist-row .n { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+  .end-svg { width: 100%; display: block; }
+
+  .tip { display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .tip:first-of-type { border-top: none; padding-top: 4px; }
+  .tip .ic { flex: 0 0 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: .8rem; font-weight: 800; }
+  .tip.warn .ic { background: rgba(255,198,77,.15); color: var(--gold); }
+  .tip.good .ic { background: rgba(52,199,123,.15); color: var(--green); }
+  .tip.info .ic { background: rgba(143,117,255,.15); color: var(--purple-2); }
+  .tip h4 { font-size: .85rem; margin-bottom: 3px; }
+  .tip p { font-size: .78rem; color: #c9c9d6; line-height: 1.5; }
+  .empty { text-align: center; color: var(--muted); padding: 30px 20px; font-size: .9rem; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -113,6 +233,8 @@
     <span class="round-chip highlight" id="roundType">Ronda completa</span>
     <span class="round-chip" id="arrowsRemaining">60 / 60</span>
   </div>
+
+  <div class="num-row" id="numRow" hidden></div>
 
   <div class="target-container">
     <svg id="target" class="target" viewBox="0 0 400 400"></svg>
@@ -139,6 +261,7 @@
 
   <div class="btn-row">
     <button class="btn btn-secondary" id="undoBtn" disabled>↩︎ Flecha</button>
+    <button class="btn btn-miss" id="missBtn" title="Flecha fuera (M)">M</button>
     <button class="btn btn-primary" id="endBtn" disabled>✓ Serie</button>
   </div>
 
@@ -168,11 +291,37 @@
     </div>
     <div class="score" id="personalRecord">-</div>
   </div>
+
+  <div class="settings">
+    <h3>Ajustes</h3>
+    <div class="setting">
+      <div>Flechas numeradas<small>Indica qué flecha has tirado para detectar flechas defectuosas</small></div>
+      <label class="switch"><input type="checkbox" id="setNumbered"><span></span></label>
+    </div>
+    <div class="setting">
+      <div>Flechas en el carcaj<small>Cuántas flechas numeradas usas</small></div>
+      <select id="setQuiver"></select>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: ANALYSIS -->
+<div id="screen-analysis" class="screen">
+  <div class="filters">
+    <div class="seg" id="anaModeSeg">
+      <button data-mode="indoor">🏠 18m</button>
+      <button data-mode="outdoor">🌳 50m</button>
+    </div>
+    <select id="anaScope" aria-label="Sesiones a analizar"></select>
+  </div>
+  <div class="scope-note" id="anaNote"></div>
+  <div id="anaBody"></div>
 </div>
 
 <!-- SCREEN: HISTORY -->
 <div id="screen-history" class="screen">
-  <button class="new-session-btn" id="saveSessionBtn">💾 Guardar y cerrar sesión</button>
+  <div id="currentSession"></div>
+  <div class="list-title" id="historyTitle">Sesiones guardadas</div>
   <div id="historyList"></div>
 </div>
 
@@ -185,6 +334,10 @@
     <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
     Stats
   </button>
+  <button class="nav-btn" data-screen="analysis">
+    <svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M14.5 14.5L21 21"/><path d="M7 11l2-2 2 2 2-3"/></svg>
+    Análisis
+  </button>
   <button class="nav-btn" data-screen="history">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
     Histórico
@@ -194,15 +347,23 @@
 <script>
 (function() {
   'use strict';
-  
+
   // ========================================
   // CONFIGURACIÓN
   // ========================================
   const MODES = {
-    indoor: { distance: 18, faceCm: 40, arrowsPerEnd: 3, totalArrows: 60 },
-    outdoor: { distance: 50, faceCm: 122, arrowsPerEnd: 6, totalArrows: 72 }
+    indoor: { key: 'indoor', label: 'Sala 18m', distance: 18, faceCm: 40, arrowsPerEnd: 3, totalArrows: 60, secPerArrow: 40 },
+    outdoor: { key: 'outdoor', label: 'Exterior 50m', distance: 50, faceCm: 122, arrowsPerEnd: 6, totalArrows: 72, secPerArrow: 40 }
   };
-  
+  // Geometría de la diana en el viewBox 400x400: 10 anillos de 19 unidades
+  const CENTER = 200;
+  const RING = 19;
+  const FACE_R = RING * 10;   // 190
+  const X_R = RING / 2;       // anillo X interior
+  const RING_COLORS = ['#ffffff', '#ffffff', '#00b7ee', '#00b7ee', '#1a1a1a',
+                       '#1a1a1a', '#e63946', '#e63946', '#ffcd00', '#ffcd00'];
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
   // ========================================
   // ESTADO DE LA APP
   // ========================================
@@ -212,13 +373,62 @@
   let completedEnds = [];
   let totalScore = 0;
   let history = [];
-  
+  let settings = { numbered: false, quiver: 6 };
+  let selNum = 1;          // número de flecha seleccionado para el próximo impacto
+
   // Cargar historial desde localStorage
   try {
     const saved = localStorage.getItem('barebow_history');
     if (saved) history = JSON.parse(saved);
   } catch(e) { history = []; }
-  
+
+  try {
+    const s = JSON.parse(localStorage.getItem('barebow_settings') || 'null');
+    if (s) settings = Object.assign(settings, s);
+  } catch(e) {}
+
+  // Recuperar la sesión en curso (por si se cierra la app a mitad de ronda)
+  try {
+    const cur = JSON.parse(localStorage.getItem('barebow_current') || 'null');
+    if (cur && MODES[cur.mode]) {
+      config = MODES[cur.mode];
+      currentEnd = cur.currentEnd;
+      arrows = cur.arrows;
+      completedEnds = cur.completedEnds;
+      totalScore = cur.totalScore;
+      if (cur.selNum) selNum = cur.selNum;
+    }
+  } catch(e) {}
+
+  function saveCurrent() {
+    try {
+      localStorage.setItem('barebow_current', JSON.stringify({
+        mode: config.key, currentEnd, arrows, completedEnds, totalScore, selNum
+      }));
+    } catch(e) {}
+  }
+  function saveSettings() {
+    try { localStorage.setItem('barebow_settings', JSON.stringify(settings)); } catch(e) {}
+  }
+
+  function label(a) { return a.isX ? 'X' : (a.score === 0 ? 'M' : String(a.score)); }
+
+  function svgEl(tag, attrs, parent) {
+    const e = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  // Dibuja la cara de la diana (anillos + X) en un SVG 400x400
+  function drawFace(svg) {
+    RING_COLORS.forEach((color, i) => {
+      svgEl('circle', { cx: CENTER, cy: CENTER, r: FACE_R - i * RING, fill: color,
+        stroke: i === 4 || i === 5 ? '#666' : '#333', 'stroke-width': 1 }, svg);
+    });
+    svgEl('circle', { cx: CENTER, cy: CENTER, r: X_R, fill: 'none', stroke: '#333', 'stroke-width': 1 }, svg);
+  }
+
   // ========================================
   // REFERENCIAS DOM
   // ========================================
@@ -230,96 +440,95 @@
   const arrowsDisplay = document.getElementById('arrowsDisplay');
   const undoBtn = document.getElementById('undoBtn');
   const endBtn = document.getElementById('endBtn');
+  const missBtn = document.getElementById('missBtn');
   const hintText = document.getElementById('hintText');
   const sessionTotalEl = document.getElementById('sessionTotal');
   const bestEndEl = document.getElementById('bestEnd');
   const personalRecordEl = document.getElementById('personalRecord');
   const historyList = document.getElementById('historyList');
   const arrowsRemainingEl = document.getElementById('arrowsRemaining');
-  
+  const numRow = document.getElementById('numRow');
+
   // ========================================
-  // DIBUJAR Diana
+  // DIBUJAR DIANA
   // ========================================
   function drawTarget() {
     target.innerHTML = '';
-    const rings = [
-      { color: '#ffffff', r: 40 },
-      { color: '#ffffff', r: 36 },
-      { color: '#00b7ee', r: 32 },
-      { color: '#00b7ee', r: 28 },
-      { color: '#1a1a1a', r: 24 },
-      { color: '#1a1a1a', r: 20 },
-      { color: '#e63946', r: 16 },
-      { color: '#e63946', r: 12 },
-      { color: '#ffcd00', r: 8 },
-      { color: '#ffcd00', r: 4 }
-    ];
-    
-    // Dibujar círculos del exterior al interior
-    rings.forEach(ring => {
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', 200);
-      circle.setAttribute('cy', 200);
-      circle.setAttribute('r', ring.r);
-      circle.setAttribute('fill', ring.color);
-      circle.setAttribute('stroke', '#555');
-      circle.setAttribute('stroke-width', '1');
-      target.appendChild(circle);
-    });
-    
-    // Marcador X central
-    const xCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    xCircle.setAttribute('cx', 200);
-    xCircle.setAttribute('cy', 200);
-    xCircle.setAttribute('r', 2);
-    xCircle.setAttribute('fill', '#ffcd00');
-    xCircle.setAttribute('stroke', '#111');
-    target.appendChild(xCircle);
-    
+    drawFace(target);
+
     // Flechas disparadas en la serie actual
-    arrows.forEach((a, i) => {
-      const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      
-      const hitCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      hitCircle.setAttribute('cx', a.x);
-      hitCircle.setAttribute('cy', a.y);
-      hitCircle.setAttribute('r', 6);
-      hitCircle.setAttribute('fill', 'rgba(109,74,255,0.4)');
-      hitCircle.setAttribute('stroke', '#6d4aff');
-      hitCircle.setAttribute('stroke-width', '2');
-      group.appendChild(hitCircle);
-      
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', a.x);
-      text.setAttribute('y', a.y - 8);
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('font-size', '10');
-      text.setAttribute('font-weight', 'bold');
-      text.setAttribute('fill', '#fff');
-      text.textContent = a.score === 10 ? 'X' : a.score;
-      group.appendChild(text);
-      
-      target.appendChild(group);
+    arrows.forEach(a => {
+      if (a.x == null) return; // fallos (M) sin posición
+      const group = svgEl('g', {}, target);
+      svgEl('circle', { cx: a.x, cy: a.y, r: 8, fill: 'rgba(109,74,255,0.4)', stroke: '#6d4aff', 'stroke-width': 2 }, group);
+      const text = svgEl('text', { x: a.x, y: a.y - 12, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 'bold',
+        fill: '#fff', stroke: '#000', 'stroke-width': 3, 'paint-order': 'stroke' }, group);
+      text.textContent = label(a) + (a.n ? ' ·' + a.n : '');
     });
   }
-  
+
   // ========================================
   // CALCULAR PUNTUACIÓN
   // ========================================
   function calculateScore(x, y) {
-    const dx = x - 200;
-    const dy = y - 200;
+    const dx = x - CENTER;
+    const dy = y - CENTER;
     const dist = Math.sqrt(dx*dx + dy*dy);
-    
-    if (dist > 40) return 0;
-    
-    const ring = Math.ceil(dist / 4);
+
+    if (dist > FACE_R) return { score: 0, isX: false };
+
+    const ring = Math.max(1, Math.ceil(dist / RING));
     const score = 11 - ring;
-    const isX = dist <= 4;
-    
+    const isX = dist <= X_R;
+
     return { score, isX };
   }
-  
+
+  function canShoot() {
+    return arrows.length < config.arrowsPerEnd && totalArrows() < config.totalArrows;
+  }
+
+  // ========================================
+  // NÚMERO DE FLECHA
+  // ========================================
+  function usedNums() { return new Set(arrows.map(a => a.n).filter(Boolean)); }
+
+  // Siguiente número libre después de `from`, en ciclo (1..carcaj)
+  function nextFreeNum(from) {
+    const used = usedNums();
+    for (let i = 1; i <= settings.quiver; i++) {
+      const n = ((from - 1 + i) % settings.quiver) + 1;
+      if (!used.has(n)) return n;
+    }
+    return ((from) % settings.quiver) + 1;
+  }
+
+  function renderNumRow() {
+    numRow.hidden = !settings.numbered;
+    if (!settings.numbered) return;
+    if (selNum > settings.quiver) selNum = 1;
+    const used = usedNums();
+    numRow.innerHTML = '<span class="lbl">Flecha nº</span>';
+    for (let n = 1; n <= settings.quiver; n++) {
+      const b = document.createElement('button');
+      b.className = 'num-chip' + (n === selNum ? ' sel' : '') + (used.has(n) ? ' used' : '');
+      b.textContent = n;
+      b.addEventListener('click', () => { selNum = n; renderNumRow(); saveCurrent(); });
+      numRow.appendChild(b);
+    }
+  }
+
+  function addArrow(a) {
+    if (settings.numbered) {
+      a.n = selNum;
+      arrows.push(a);
+      selNum = nextFreeNum(a.n);
+    } else {
+      arrows.push(a);
+    }
+    updateUI();
+  }
+
   // ========================================
   // CLICK EN LA DIANA
   // ========================================
@@ -327,14 +536,16 @@
     const rect = target.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 400;
     const y = ((e.clientY - rect.top) / rect.height) * 400;
-    
+
     const result = calculateScore(x, y);
-    if (result.score > 0 && arrows.length < config.arrowsPerEnd) {
-      arrows.push({ x, y, ...result });
-      updateUI();
-    }
+    // Toques fuera de la diana se ignoran; para un fallo usa el botón M
+    if (result.score > 0 && canShoot()) addArrow({ x, y, ...result });
   });
-  
+
+  missBtn.addEventListener('click', function() {
+    if (canShoot()) addArrow({ x: null, y: null, score: 0, isX: false });
+  });
+
   // ========================================
   // MODALIDAD
   // ========================================
@@ -351,24 +562,26 @@
       updateUI();
     });
   });
-  
+
   // ========================================
   // BOTÓN FLECHA (UNDO)
   // ========================================
   undoBtn.addEventListener('click', function() {
     if (arrows.length > 0) {
-      arrows.pop();
+      const a = arrows.pop();
+      if (a.n) selNum = a.n;
       updateUI();
     }
   });
-  
+
   // ========================================
   // BOTÓN SERIE
   // ========================================
   endBtn.addEventListener('click', function() {
     if (arrows.length === 0) return;
-    
+
     const endSum = arrows.reduce((sum, a) => sum + a.score, 0);
+    const lastN = arrows[arrows.length - 1].n;
     completedEnds.push({
       endNumber: currentEnd,
       score: endSum,
@@ -377,82 +590,164 @@
     totalScore += endSum;
     currentEnd++;
     arrows = [];
+    if (lastN) selNum = (lastN % settings.quiver) + 1;
     updateUI();
   });
-  
+
   // ========================================
   // GUARDAR SESIÓN
   // ========================================
-  document.getElementById('saveSessionBtn').addEventListener('click', function() {
-    if (totalScore === 0) {
+  const r1 = v => v == null ? null : Math.round(v * 10) / 10;
+
+  function saveSession() {
+    if (arrows.length > 0) {
+      alert('Cierra la serie en curso (✓ Serie) antes de guardar.');
+      return;
+    }
+    if (completedEnds.length === 0) {
       alert('No hay flechas registradas en esta sesión.');
       return;
     }
-    
+
     const avg = (totalScore / totalArrows()).toFixed(2);
     const recordKey = 'record_' + config.key;
     const currentRecord = localStorage.getItem(recordKey);
-    
+
     let newRecord = false;
-    if (!currentRecord || totalScore > parseInt(currentRecord)) {
+    if (!currentRecord || totalScore > parseInt(currentRecord, 10)) {
       newRecord = true;
       localStorage.setItem(recordKey, totalScore);
     }
-    
+
     history.push({
+      id: Date.now(),
       date: new Date().toLocaleDateString('es-ES'),
       mode: config.key,
       total: totalScore,
       arrows: totalArrows(),
       ends: completedEnds.length,
-      avg: avg
+      avg: avg,
+      // Detalle flecha a flecha para el análisis
+      endsData: completedEnds.map(e => ({
+        score: e.score,
+        arrows: e.arrows.map(a => ({ x: r1(a.x), y: r1(a.y), score: a.score, isX: !!a.isX, n: a.n || null }))
+      }))
     });
     localStorage.setItem('barebow_history', JSON.stringify(history));
-    
+
     // Reset
     arrows = [];
     completedEnds = [];
     totalScore = 0;
     currentEnd = 1;
-    
+    selNum = 1;
+
     updateUI();
-    alert(newRecord ? 
-      '¡NUEVO RÉCORD! Sesión guardada.' : 
+    renderHistory();
+    alert(newRecord ?
+      '¡NUEVO RÉCORD! Sesión guardada.' :
       'Sesión guardada en el histórico.');
-  });
-  
+  }
+
+  // ========================================
+  // BORRAR SERIES Y SESIONES
+  // ========================================
+  // Botón de borrado con doble toque: el primero pide confirmación, el segundo borra.
+  function deleteButton(text, onConfirm) {
+    const b = document.createElement('button');
+    b.className = 'del-btn';
+    b.innerHTML = text;
+    let timer = null;
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      if (b.classList.contains('armed')) { clearTimeout(timer); onConfirm(); return; }
+      b.classList.add('armed');
+      b.textContent = '¿Seguro?';
+      timer = setTimeout(() => { b.classList.remove('armed'); b.innerHTML = text; }, 3000);
+    });
+    return b;
+  }
+
+  function persistHistory() {
+    try { localStorage.setItem('barebow_history', JSON.stringify(history)); } catch(e) {}
+  }
+
+  // El récord es la mejor sesión guardada que queda en el histórico de esa modalidad
+  function recomputeRecord(mode) {
+    const totals = history.filter(h => h.mode === mode).map(h => h.total);
+    try {
+      if (totals.length) localStorage.setItem('record_' + mode, Math.max(...totals));
+      else localStorage.removeItem('record_' + mode);
+    } catch(e) {}
+  }
+
+  // Sesión en curso
+  function deleteCurrentEnd(i) {
+    completedEnds.splice(i, 1);
+    completedEnds.forEach((e, j) => e.endNumber = j + 1);
+    totalScore = completedEnds.reduce((s, e) => s + e.score, 0);
+    currentEnd = completedEnds.length + 1;
+    updateUI();
+    renderHistory();
+  }
+  function discardCurrent() {
+    arrows = []; completedEnds = []; totalScore = 0; currentEnd = 1; selNum = 1;
+    updateUI();
+    renderHistory();
+  }
+
+  // Sesiones guardadas
+  function deleteSavedEnd(h, i) {
+    h.endsData.splice(i, 1);
+    if (!h.endsData.length) { deleteSession(h); return; }
+    h.total = h.endsData.reduce((s, e) => s + e.score, 0);
+    h.arrows = h.endsData.reduce((s, e) => s + e.arrows.length, 0);
+    h.ends = h.endsData.length;
+    h.avg = (h.total / h.arrows).toFixed(2);
+    persistHistory();
+    recomputeRecord(h.mode);
+    renderStats();
+    renderHistory();
+  }
+  function deleteSession(h) {
+    history = history.filter(x => x !== h);
+    persistHistory();
+    recomputeRecord(h.mode);
+    renderStats();
+    renderHistory();
+  }
+
   // ========================================
   // NAVEGACIÓN
   // ========================================
+  function showScreen(screen) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.screen === screen));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + screen).classList.add('active');
+    window.scrollTo(0, 0);
+    if (screen === 'history') renderHistory();
+    if (screen === 'stats') renderStats();
+    if (screen === 'analysis') renderAnalysis();
+  }
   document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const screen = this.dataset.screen;
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-      
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById('screen-' + screen).classList.add('active');
-      
-      if (screen === 'history') renderHistory();
-      if (screen === 'stats') renderStats();
-    });
+    btn.addEventListener('click', function() { showScreen(this.dataset.screen); });
   });
-  
+
   // ========================================
   // ACTUALIZAR INTERFAZ
   // ========================================
   function updateUI() {
-    totalScoreEl.textContent = totalScore;
+    const runningTotal = totalScore + arrows.reduce((s, a) => s + a.score, 0);
+    totalScoreEl.textContent = runningTotal;
     currentEndEl.textContent = currentEnd;
     arrowsInEndEl.textContent = `${arrows.length} / ${config.arrowsPerEnd}`;
-    
+
     const allArrows = totalArrows();
-    const avg = allArrows > 0 ? (totalScore / allArrows).toFixed(2) : '-';
+    const avg = allArrows > 0 ? (runningTotal / allArrows).toFixed(2) : '-';
     averageEl.textContent = avg;
-    
-    const remaining = config.totalArrows - allArrows;
+
     arrowsRemainingEl.textContent = `${allArrows} / ${config.totalArrows}`;
-    
+
     // Mostrar flechas en la banda
     arrowsDisplay.innerHTML = '';
     if (arrows.length === 0 && completedEnds.length === 0) {
@@ -463,90 +758,642 @@
         pill.className = 'arrow-pill';
         if (a.score >= 8) pill.classList.add('good');
         else if (a.score <= 5) pill.classList.add('bad');
-        
+
         const seq = document.createElement('span');
         seq.style.fontSize = '.55rem';
         seq.style.marginRight = '4px';
         seq.style.color = 'var(--muted)';
-        seq.textContent = '#' + (allArrows - arrows.length + i + 1);
-        
+        seq.textContent = a.n ? 'F' + a.n : '#' + (allArrows - arrows.length + i + 1);
+
         pill.appendChild(seq);
-        pill.appendChild(document.createTextNode(a.score === 10 ? 'X' : String(a.score)));
+        pill.appendChild(document.createTextNode(label(a)));
         arrowsDisplay.appendChild(pill);
       });
     }
-    
+
     // Estado de botones
     undoBtn.disabled = arrows.length === 0;
     endBtn.disabled = arrows.length === 0;
-    
+    missBtn.disabled = !canShoot();
+
     // Texto de ayuda
-    if (arrows.length === config.arrowsPerEnd) {
+    if (allArrows >= config.totalArrows && arrows.length === 0) {
+      hintText.textContent = 'Ronda completa. Guarda la sesión en Histórico.';
+    } else if (allArrows >= config.totalArrows) {
+      hintText.textContent = 'Última flecha registrada. Pulsa ✓ Serie y guarda la sesión.';
+    } else if (arrows.length === config.arrowsPerEnd) {
       hintText.textContent = `Serie completa (${config.arrowsPerEnd} flechas). Pulsa ✓ Serie.`;
     } else if (arrows.length === 0 && completedEnds.length === 0) {
-      hintText.textContent = 'Toca la diana para registrar flechas. ' + 
+      hintText.textContent = 'Toca la diana para registrar flechas. ' +
         (config.arrowsPerEnd === 3 ? 'Serie de 3 flechas.' : 'Serie de 6 flechas.');
     } else {
       hintText.textContent = `Flecha ${arrows.length + 1} de ${config.arrowsPerEnd}.`;
     }
-    
+
+    renderNumRow();
     drawTarget();
     renderStats();
+    saveCurrent();
   }
-  
+
   // ========================================
   // TOTAL FLECHAS
   // ========================================
   function totalArrows() {
     return completedEnds.reduce((sum, e) => sum + e.arrows.length, 0) + arrows.length;
   }
-  
+
   // ========================================
   // RENDERIZAR STATS
   // ========================================
   function renderStats() {
     sessionTotalEl.textContent = totalScore;
-    
-    const best = completedEnds.length > 0 ? 
+
+    const best = completedEnds.length > 0 ?
       Math.max(...completedEnds.map(e => e.score)) : '-';
     bestEndEl.textContent = best;
-    
+
     const recordKey = 'record_' + config.key;
     const record = localStorage.getItem(recordKey);
     personalRecordEl.textContent = record || '-';
   }
-  
+
+  // Ajustes
+  const setNumbered = document.getElementById('setNumbered');
+  const setQuiver = document.getElementById('setQuiver');
+  for (let q = 3; q <= 12; q++) {
+    const o = document.createElement('option');
+    o.value = q; o.textContent = q + ' flechas';
+    setQuiver.appendChild(o);
+  }
+  setNumbered.checked = settings.numbered;
+  setQuiver.value = settings.quiver;
+  setNumbered.addEventListener('change', () => { settings.numbered = setNumbered.checked; saveSettings(); updateUI(); });
+  setQuiver.addEventListener('change', () => { settings.quiver = +setQuiver.value; saveSettings(); updateUI(); });
+
   // ========================================
   // RENDERIZAR HISTÓRICO
   // ========================================
+  let openSession = null;   // sesión guardada desplegada
+
+  // Lista de series con botón de borrar en cada una
+  function endList(ends, onDelete) {
+    const list = document.createElement('div');
+    list.className = 'end-list';
+    ends.forEach((e, i) => {
+      const line = document.createElement('div');
+      line.className = 'end-line';
+      line.innerHTML = `<span class="no">S${i + 1}</span>
+        <span class="arr">${e.arrows.map(a => `<span>${label(a)}</span>`).join('')}</span>
+        <span class="tot">${e.score}</span>`;
+      line.appendChild(deleteButton('🗑', () => onDelete(i)));
+      list.appendChild(line);
+    });
+    return list;
+  }
+
+  function renderCurrentSession() {
+    const box = document.getElementById('currentSession');
+    box.innerHTML = '';
+    if (!completedEnds.length && !arrows.length) {
+      box.innerHTML = '<div class="empty-cur">No hay ninguna sesión en curso.</div>';
+      return;
+    }
+    const card = document.createElement('div');
+    card.className = 'sess-card';
+    card.innerHTML = `<div class="top"><b>Sesión en curso · ${config.label}</b><span class="score">${totalScore}</span></div>`;
+    const list = endList(completedEnds, deleteCurrentEnd);
+    if (arrows.length) {
+      const p = document.createElement('div');
+      p.className = 'end-line pending';
+      p.textContent = `Serie ${currentEnd} en curso: ${arrows.length} flecha(s). Ciérrala con ✓ Serie o bórralas con ↩︎ Flecha.`;
+      list.appendChild(p);
+    }
+    card.appendChild(list);
+    const actions = document.createElement('div');
+    actions.className = 'sess-actions';
+    const save = document.createElement('button');
+    save.className = 'btn btn-save';
+    save.textContent = '💾 Guardar y cerrar';
+    save.addEventListener('click', saveSession);
+    actions.appendChild(save);
+    actions.appendChild(deleteButton('🗑 Descartar sesión', discardCurrent));
+    card.appendChild(actions);
+    box.appendChild(card);
+  }
+
   function renderHistory() {
+    renderCurrentSession();
     historyList.innerHTML = '';
-    
+    document.getElementById('historyTitle').hidden = history.length === 0;
+
     if (history.length === 0) {
       historyList.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">Sin sesiones guardadas. Registra flechas y guarda una sesión para verla aquí.</div>';
       return;
     }
-    
+
     history.slice().reverse().forEach(h => {
+      const isOpen = openSession === h;
       const item = document.createElement('div');
-      item.className = 'history-item';
+      item.className = 'history-item saved' + (isOpen ? ' open' : '');
+      const modeLbl = h.mode === 'indoor' ? '🏠 18m' : h.mode === 'outdoor' ? '🌳 50m' : '¿?';
       item.innerHTML = `
-        <div class="left">
-          <div class="date">${h.date}</div>
-          <div class="details">${h.mode === 'indoor' ? '🏠 18m' : '🌳 50m'} · ${h.ends} series · media ${h.avg}</div>
-        </div>
-        <div class="score">${h.total}</div>
-      `;
+        <div class="head">
+          <div class="left">
+            <div class="date">${h.date}</div>
+            <div class="details">${modeLbl} · ${h.ends} series · media ${h.avg}</div>
+          </div>
+          <div><span class="score">${h.total}</span><span class="chev">▶</span></div>
+        </div>`;
+      item.querySelector('.head').addEventListener('click', () => {
+        openSession = isOpen ? null : h;
+        renderHistory();
+      });
+
+      if (isOpen) {
+        const detail = document.createElement('div');
+        detail.className = 'detail';
+        if (h.endsData) detail.appendChild(endList(h.endsData, i => deleteSavedEnd(h, i)));
+        else detail.innerHTML = '<div class="note">Sesión antigua: no tiene el detalle de las series, solo se puede eliminar entera.</div>';
+        const actions = document.createElement('div');
+        actions.className = 'sess-actions';
+        if (h.endsData) {
+          const go = document.createElement('button');
+          go.className = 'btn btn-secondary';
+          go.textContent = '📈 Ver análisis';
+          go.addEventListener('click', () => {
+            ana.mode = h.mode; ana.scope = 'id:' + h.id; ana.sel = null;
+            showScreen('analysis');
+          });
+          actions.appendChild(go);
+        }
+        actions.appendChild(deleteButton('🗑 Eliminar sesión', () => deleteSession(h)));
+        detail.appendChild(actions);
+        item.appendChild(detail);
+      }
       historyList.appendChild(item);
     });
   }
-  
+
+  // ========================================
+  // ANÁLISIS
+  // ========================================
+  const ana = { mode: null, scope: null, sel: null };
+  const anaBody = document.getElementById('anaBody');
+  const anaNote = document.getElementById('anaNote');
+  const anaScope = document.getElementById('anaScope');
+
+  const mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
+  const variance = a => {
+    if (a.length < 2) return 0;
+    const m = mean(a);
+    return a.reduce((s, v) => s + (v - m) * (v - m), 0) / (a.length - 1);
+  };
+  const sd = a => Math.sqrt(variance(a));
+  // ¿La diferencia de medias es real o puede ser casualidad? (≈ 2 errores estándar)
+  function sigDiff(a, b, minDiff) {
+    if (a.length < 4 || b.length < 4) return false;
+    const d = mean(a) - mean(b);
+    const se = Math.sqrt(variance(a) / a.length + variance(b) / b.length);
+    return Math.abs(d) >= minDiff && Math.abs(d) > 2 * se;
+  }
+  const fmt = (v, d = 1) => v.toFixed(d).replace('.', ',');
+  const ordinal = p => (p + 1) + 'ª';
+
+  // Dirección de un desplazamiento: por debajo de `t` es "centrado"; si no, cuenta
+  // cada eje que aporte al menos el 40 % del desplazamiento (así una diagonal sale como tal).
+  function dirParts(dx, dy, t) {
+    const mag = Math.hypot(dx, dy);
+    if (mag <= t) return [0, 0];
+    const k = 0.4 * mag;
+    return [dy < -k ? -1 : dy > k ? 1 : 0, dx < -k ? -1 : dx > k ? 1 : 0];
+  }
+  function dirText(dx, dy, t) {
+    const [v, h] = dirParts(dx, dy, t);
+    const vs = v < 0 ? 'arriba' : v > 0 ? 'abajo' : '';
+    const hs = h < 0 ? 'izquierda' : h > 0 ? 'derecha' : '';
+    return vs && hs ? vs + '-' + hs : (vs || hs || 'centrado');
+  }
+  // Flechita SVG apuntando en la dirección real del desplazamiento
+  function dirGlyph(dx, dy, t) {
+    if (Math.hypot(dx, dy) <= t) return '•';
+    const deg = Math.round(Math.atan2(dy, dx) * 180 / Math.PI + 90);
+    return `<svg width="12" height="12" viewBox="-6 -6 12 12" style="vertical-align:-1px;transform:rotate(${deg}deg)" aria-hidden="true"><path d="M0 5V-5M-3.5-1.5L0-5L3.5-1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+
+  function sessionsFor(mode) {
+    return history.filter(h => h.mode === mode && h.endsData && h.endsData.length);
+  }
+
+  function buildScopeOptions() {
+    const saved = sessionsFor(ana.mode);
+    const opts = [];
+    if (config.key === ana.mode && completedEnds.length) opts.push(['current', 'Sesión en curso']);
+    if (saved.length) opts.push(['last', 'Última sesión guardada']);
+    if (saved.length > 1) opts.push(['last5', 'Últimas 5 sesiones']);
+    if (saved.length > 5) opts.push(['last10', 'Últimas 10 sesiones']);
+    if (saved.length > 1) opts.push(['all', 'Todas (' + saved.length + ')']);
+    saved.slice().reverse().forEach(h => opts.push(['id:' + h.id, h.date + ' · ' + h.total + ' pts']));
+    if (!opts.some(o => o[0] === ana.scope)) ana.scope = opts.length ? (opts.find(o => o[0] === 'last5') || opts[0])[0] : null;
+    anaScope.innerHTML = '';
+    opts.forEach(([v, t]) => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = t;
+      anaScope.appendChild(o);
+    });
+    anaScope.hidden = !opts.length;
+    if (ana.scope) anaScope.value = ana.scope;
+  }
+
+  function scopeEnds() {
+    const saved = sessionsFor(ana.mode);
+    const s = ana.scope;
+    let sess = [];
+    if (s === 'current') sess = [{ endsData: completedEnds }];
+    else if (s === 'last') sess = saved.slice(-1);
+    else if (s === 'last5') sess = saved.slice(-5);
+    else if (s === 'last10') sess = saved.slice(-10);
+    else if (s === 'all') sess = saved;
+    else if (s && s.startsWith('id:')) sess = saved.filter(h => 'id:' + h.id === s);
+    return sess;
+  }
+
+  function analyze(sessions, mode) {
+    const m = MODES[mode];
+    const cmU = m.faceCm / (2 * FACE_R);          // cm por unidad del SVG
+    const all = [];
+    const endTotals = {};                          // índice de serie → totales
+    sessions.forEach((h, si) => {
+      h.endsData.forEach((e, ei) => {
+        (endTotals[ei] = endTotals[ei] || []).push(e.score);
+        e.arrows.forEach((a, p) => all.push({ ...a, pos: p, end: ei, sess: si }));
+      });
+    });
+    const pts = all.filter(a => a.x != null);
+    const dxs = pts.map(a => a.x - CENTER), dys = pts.map(a => a.y - CENTER);
+    const A = {
+      m, cmU, ringU: RING, all, pts, nSess: sessions.length,
+      scores: all.map(a => a.score),
+      cx: mean(dxs), cy: mean(dys), sx: sd(dxs), sy: sd(dys),
+      endTotals
+    };
+    A.avg = mean(A.scores);
+    A.radius = mean(pts.map(a => Math.hypot(a.x - CENTER - A.cx, a.y - CENTER - A.cy)));
+    A.hits10 = all.filter(a => a.score >= 10).length;
+    A.misses = all.filter(a => a.score === 0).length;
+
+    // Distribución de puntuaciones
+    A.dist = [['X', all.filter(a => a.isX).length], ['10', all.filter(a => a.score === 10 && !a.isX).length]];
+    for (let s = 9; s >= 1; s--) A.dist.push([String(s), all.filter(a => a.score === s).length]);
+    A.dist.push(['M', A.misses]);
+
+    // Grupos: por posición en la serie y por número de flecha
+    function groupStats(list, key, value) {
+      const own = list, others = all.filter(a => a[key] !== value);
+      const p = own.filter(a => a.x != null);
+      const gx = mean(p.map(a => a.x - CENTER)), gy = mean(p.map(a => a.y - CENTER));
+      const sc = own.map(a => a.score), oth = others.map(a => a.score);
+      // Posición más habitual de este grupo dentro de la serie (para detectar confusión flecha/orden)
+      const posCount = {};
+      own.forEach(a => posCount[a.pos] = (posCount[a.pos] || 0) + 1);
+      const topPos = Object.keys(posCount).sort((a, b) => posCount[b] - posCount[a])[0];
+      return {
+        value, n: own.length, nPos: p.length, avg: mean(sc), delta: mean(sc) - mean(oth),
+        topPos: +topPos, topPosShare: posCount[topPos] / own.length,
+        gx, gy, scoreSig: sigDiff(sc, oth, 0.3)
+      };
+    }
+    // Desvío de cada grupo respecto a la MEDIANA de los centros de grupo: así una flecha
+    // (o una posición) muy desviada no arrastra la referencia y hace parecer desviadas a las demás.
+    const median = v => { const s = v.slice().sort((a, b) => a - b), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+    function setOffsets(groups) {
+      const ok = groups.filter(g => g.nPos >= 4);
+      const rx = ok.length >= 3 ? median(ok.map(g => g.gx)) : A.cx;
+      const ry = ok.length >= 3 ? median(ok.map(g => g.gy)) : A.cy;
+      groups.forEach(g => {
+        g.ox = g.gx - rx; g.oy = g.gy - ry;
+        const seX = A.sx / Math.sqrt(Math.max(g.nPos, 1)), seY = A.sy / Math.sqrt(Math.max(g.nPos, 1));
+        g.offSig = g.nPos >= 4 && Math.hypot(g.ox, g.oy) >= RING * 0.5 &&
+          (Math.abs(g.ox) > 2.5 * seX || Math.abs(g.oy) > 2.5 * seY);
+      });
+      return groups;
+    }
+    A.byPos = [];
+    for (let p = 0; p < m.arrowsPerEnd; p++) {
+      const list = all.filter(a => a.pos === p);
+      if (list.length) A.byPos.push(groupStats(list, 'pos', p));
+    }
+    setOffsets(A.byPos);
+    const nums = [...new Set(all.map(a => a.n).filter(Boolean))].sort((a, b) => a - b);
+    A.byNum = setOffsets(nums.map(n => groupStats(all.filter(a => a.n === n), 'n', n)));
+
+    // Por serie: media del total de la serie k en todas las sesiones
+    A.byEnd = Object.keys(endTotals).map(k => ({ end: +k, avg: mean(endTotals[k]), n: endTotals[k].length }));
+    const K = A.byEnd.length;
+    A.firstHalf = all.filter(a => a.end < Math.floor(K / 2)).map(a => a.score);
+    A.secondHalf = all.filter(a => a.end >= Math.ceil(K / 2)).map(a => a.score);
+    return A;
+  }
+
+  // ---------- Recomendaciones ----------
+  function buildTips(A) {
+    const tips = [];
+    const t = RING * 0.5;
+    const cm = u => fmt(Math.abs(u) * A.cmU);
+    const n = A.pts.length;
+
+    if (n < 12) {
+      tips.push({ k: 'info', h: 'Aún hay pocos datos', p: `Llevas ${n} impactos con posición. Por debajo de 12 (lo ideal es más de 30) los patrones pueden ser casualidad: registra más series antes de cambiar nada en el arco o la técnica.` });
+    }
+
+    // 1. Centro del grupo
+    const off = Math.hypot(A.cx, A.cy);
+    const seC = Math.hypot(A.sx, A.sy) / Math.sqrt(Math.max(n, 1));
+    if (n >= 6 && off >= RING * 0.75 && off > 2 * seC) {
+      const parts = [];
+      if (A.cy < -t) parts.push(`<b>Alto (${cm(A.cy)} cm):</b> apunta más abajo con la punta de la flecha o, si haces string walking, aumenta el crawl (baja los dedos en la cuerda).`);
+      if (A.cy > t) parts.push(`<b>Bajo (${cm(A.cy)} cm):</b> apunta más arriba o reduce el crawl. Si solo ocurre al final de la ronda, mira la sección de fatiga.`);
+      if (A.cx < -t) parts.push(`<b>Izquierda (${cm(A.cx)} cm):</b> desplaza el punto de mira a la derecha. Si persiste, revisa el centrado de la flecha y la tensión del botón (plunger): en un diestro, una flecha demasiado rígida tiende a ir a la izquierda.`);
+      if (A.cx > t) parts.push(`<b>Derecha (${cm(A.cx)} cm):</b> desplaza el punto de mira a la izquierda. Si persiste, revisa el centrado y la tensión del botón: en un diestro, una flecha demasiado blanda tiende a ir a la derecha.`);
+      tips.push({ k: 'warn', h: `Grupo desplazado ${dirText(A.cx, A.cy, t)}`, p: parts.join(' ') + ' <i>(Zurdos: invierte izquierda y derecha.)</i>' });
+    } else if (n >= 12) {
+      tips.push({ k: 'good', h: 'Grupo bien centrado', p: 'El centro de tu grupo coincide con el centro de la diana: no toques el punto de mira ni el crawl. Tu margen de mejora está en agrupar más.' });
+    }
+
+    // 2. Forma del grupo
+    if (n >= 12 && A.sx > 0 && A.sy > 0) {
+      const ratio = A.sy / A.sx;
+      if (ratio > 1.4) {
+        tips.push({ k: 'warn', h: 'Dispersión sobre todo vertical', p: `Tus flechas se reparten más en altura (${cm(A.sy)} cm) que en anchura (${cm(A.sx)} cm). Causas típicas: anclaje que cambia, apertura de longitud variable (prueba un clicker o una referencia fija), suelta que cae o se abre hacia atrás, presión distinta de la mano de arco en el grip y, en string walking, un crawl que no siempre es el mismo.` });
+      } else if (ratio < 1 / 1.4) {
+        tips.push({ k: 'warn', h: 'Dispersión sobre todo horizontal', p: `Tus flechas se reparten más a lo ancho (${cm(A.sx)} cm) que en altura (${cm(A.sy)} cm). Causas típicas: torque en el grip (mano relajada, presión en la base del pulgar), alineación de la cuerda con la ventana (string picture), suelta con “pluck” (la mano se separa de la cara), arco inclinado (cant)` + (A.m.key === 'outdoor' ? ' y viento.' : '.') });
+      }
+    }
+
+    // 3. Orden de la flecha dentro de la serie
+    const last = A.m.arrowsPerEnd - 1;
+    A.byPos.forEach(g => {
+      const bits = [];
+      if (g.scoreSig && g.delta < 0) bits.push(`puntúa ${fmt(-g.delta)} puntos menos que el resto`);
+      if (g.offSig) bits.push(`impacta desplazada ${dirText(g.ox, g.oy, t)} (${cm(Math.hypot(g.ox, g.oy))} cm respecto a tu grupo)`);
+      if (!bits.length) return;
+      let why;
+      if (g.value === 0) why = 'Suele faltar ritmo al empezar: haz tu rutina completa antes de la primera flecha (pies, respiración, comprobar el crawl) y no la tires con prisa.';
+      else if (g.value === last) why = `Suele ser prisa por terminar o fatiga dentro de la serie. Tienes unos ${A.m.secPerArrow} s por flecha: ejecuta la última con la misma calma que las demás.`;
+      else why = 'Revisa si cambias algo a mitad de serie: respiración, cómo rearmas, distracciones o mirar dónde han ido las anteriores.';
+      if (g.offSig && g.oy > t) why += ' Las flechas bajas suelen indicar apertura incompleta o cansancio.';
+      tips.push({ k: 'warn', h: `La ${ordinal(g.value)} flecha de cada serie ${bits.join(' y ')}`, p: why });
+    });
+
+    // 4. Flechas numeradas
+    const badArrows = A.byNum.filter(g => g.offSig || (g.scoreSig && g.delta < 0));
+    badArrows.slice(0, 3).forEach(g => {
+      const what = g.offSig
+        ? `impacta ${dirText(g.ox, g.oy, t)} a ${cm(Math.hypot(g.ox, g.oy))} cm del centro de tu grupo`
+        : `puntúa ${fmt(-g.delta)} puntos menos que las demás`;
+      let p = 'Si las demás agrupan y una se separa siempre hacia el mismo lado, probablemente esté dañada: comprueba la rectitud (hazla girar sobre las uñas), que la punta esté bien pegada, que el culatín (nock) esté alineado y sin fisuras y que las plumas estén intactas. Si se confirma, márcala y úsala solo para entrenar.';
+      if (g.topPosShare >= 0.8 && A.m.arrowsPerEnd > 1) {
+        p += ` <b>Ojo:</b> esta flecha se ha tirado casi siempre como ${ordinal(g.topPos)} de la serie, así que el problema también podría ser de esa posición. Cambia el orden en que tiras las flechas para distinguirlo.`;
+      }
+      tips.push({ k: 'warn', h: `La flecha nº ${g.value} ${what} (${g.n} tiros)`, p });
+    });
+    if (A.byNum.length >= 3 && !badArrows.length && A.byNum.every(g => g.nPos >= 4)) {
+      tips.push({ k: 'good', h: 'Flechas homogéneas', p: 'Ninguna flecha numerada se separa del grupo de forma clara: tu juego de flechas está bien emparejado.' });
+    }
+
+    // 5. Evolución a lo largo de la ronda
+    if (A.byEnd.length >= 4 && sigDiff(A.secondHalf, A.firstHalf, 0.3)) {
+      const d = mean(A.secondHalf) - mean(A.firstHalf);
+      if (d < 0) tips.push({ k: 'warn', h: `Bajas en la segunda mitad de la ronda (${fmt(d, 2)} por flecha)`, p: 'Es la señal típica de fatiga física o de concentración. Entrena con volumen (rondas completas, más flechas por sesión), haz ejercicios específicos de resistencia (aperturas mantenidas con el arco o con una banda elástica), hidrátate, come algo durante la competición y usa el tiempo entre series para respirar y reiniciar tu rutina.' });
+      else tips.push({ k: 'info', h: `Empiezas por debajo de tu nivel (+${fmt(d, 2)} por flecha en la segunda mitad)`, p: 'Mejoras a medida que avanza la ronda: alarga el calentamiento (más flechas de prácticas, primero a distancia corta) para llegar a la primera serie con el ritmo ya encontrado.' });
+    }
+
+    // 6. Fallos
+    if (A.all.length >= 12 && A.misses / A.all.length > 0.05) {
+      tips.push({ k: 'warn', h: `${Math.round(100 * A.misses / A.all.length)} % de flechas fuera de la diana`, p: 'Antes de afinar el punto de mira, asegura los fundamentos: acércate a la diana (5–10 m o a un parapeto sin diana) y trabaja la técnica hasta agrupar; después vuelve a la distancia.' });
+    }
+    return tips;
+  }
+
+  // ---------- Pintado ----------
+  function renderAnalysis() {
+    if (!ana.mode) ana.mode = config.key;
+    document.querySelectorAll('#anaModeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === ana.mode));
+    buildScopeOptions();
+
+    const old = history.filter(h => h.mode === ana.mode && !h.endsData).length;
+    anaNote.textContent = old ? `${old} sesión(es) antiguas no tienen el detalle flecha a flecha y no se incluyen.` : '';
+
+    const sessions = ana.scope ? scopeEnds() : [];
+    const A = sessions.length ? analyze(sessions, ana.mode) : null;
+    if (!A || !A.all.length) {
+      anaBody.innerHTML = `<div class="empty">Todavía no hay flechas para analizar en ${MODES[ana.mode].label}.<br>Registra al menos una serie en la pestaña <b>Tiro</b>.</div>`;
+      return;
+    }
+
+    const t = RING * 0.5;
+    const cm = u => fmt(Math.abs(u) * A.cmU);
+    const maxScore = 10;
+    let html = '';
+
+    // Resumen
+    html += `<div class="tiles">
+      <div class="tile"><div class="label">Flechas</div><div class="value">${A.all.length}</div></div>
+      <div class="tile"><div class="label">Media / flecha</div><div class="value">${fmt(A.avg, 2)}</div></div>
+      <div class="tile"><div class="label">10 + X</div><div class="value">${Math.round(100 * A.hits10 / A.all.length)}<span class="unit">%</span></div></div>
+      <div class="tile"><div class="label">Radio del grupo</div><div class="value">${A.pts.length ? cm(A.radius) : '-'}<span class="unit"> cm</span></div></div>
+    </div>`;
+
+    // Agrupación
+    html += `<div class="card">
+      <h3>Agrupación</h3>
+      <div class="sub">Todos los impactos. La cruz es el centro del grupo y la elipse contiene aprox. 2 de cada 3 flechas. Toca una fila de las tablas para resaltar esas flechas.</div>
+      <svg class="group-svg" id="groupSvg" viewBox="0 0 400 400" role="img" aria-label="Mapa de impactos"></svg>
+      <div class="caption" id="groupCaption"></div>
+    </div>`;
+
+    // Recomendaciones
+    const tips = buildTips(A);
+    html += `<div class="card"><h3>Recomendaciones</h3><div class="sub">Generadas a partir de tus datos. Solo se muestran tendencias que difícilmente son casualidad.</div>`;
+    if (!tips.length) html += '<div class="tip info"><div class="ic">i</div><div><h4>Sin tendencias claras</h4><p>No se detecta ningún patrón destacable. Sigue registrando sesiones para afinar el análisis.</p></div></div>';
+    tips.forEach(tp => {
+      const ic = tp.k === 'warn' ? '!' : tp.k === 'good' ? '✓' : 'i';
+      html += `<div class="tip ${tp.k}"><div class="ic">${ic}</div><div><h4>${tp.h}</h4><p>${tp.p}</p></div></div>`;
+    });
+    html += '</div>';
+
+    // Tabla genérica (posición / número)
+    function table(title, sub, groups, kind, nameFn) {
+      let s = `<div class="card"><h3>${title}</h3><div class="sub">${sub}</div><div class="rows">
+        <div class="row head"><span></span><span>Media por flecha</span><span>vs resto</span><span>Desvío del grupo</span></div>`;
+      groups.forEach(g => {
+        const flag = g.offSig || (g.scoreSig && g.delta < 0);
+        const dcls = g.scoreSig ? (g.delta < 0 ? 'down' : 'up') : '';
+        const sel = ana.sel && ana.sel.kind === kind && ana.sel.v === g.value;
+        s += `<div class="row${sel ? ' sel' : ''}" data-kind="${kind}" data-v="${g.value}">
+          <span class="name">${nameFn(g.value)}${flag ? ' <span class="flag" title="Tendencia detectada">⚠</span>' : ''}<small>${g.n} tiros</small></span>
+          <span class="bar"><i style="width:${Math.max(0, g.avg) / maxScore * 75}%"></i><b>${fmt(g.avg, 2)}</b></span>
+          <span class="delta ${dcls}">${g.delta >= 0 ? '+' : '−'}${fmt(Math.abs(g.delta), 2)}</span>
+          <span class="off">${g.nPos ? dirGlyph(g.ox, g.oy, t) + ' ' + cm(Math.hypot(g.ox, g.oy)) + ' cm' : '—'}</span>
+        </div>`;
+      });
+      return s + '</div></div>';
+    }
+
+    html += table('Por orden en la serie', `Compara la 1ª, 2ª${A.m.arrowsPerEnd > 2 ? ', 3ª…' : ''} flecha de cada serie. Detecta problemas de rutina, prisa o fatiga dentro de la serie.`, A.byPos, 'pos', v => ordinal(v));
+
+    if (A.byNum.length) {
+      html += table('Por número de flecha', 'Cada flecha física de tu carcaj. Una flecha que se separa siempre del grupo suele estar dañada o mal emparejada.', A.byNum, 'n', v => 'F' + v);
+    } else {
+      html += `<div class="card"><h3>Por número de flecha</h3><div class="sub">Numera tus flechas (rotulador en el tubo o en las plumas) y activa <b>Flechas numeradas</b> en <b>Stats → Ajustes</b>. Al tirar, elige el número antes de tocar la diana; la app pasa sola a la siguiente.</div></div>`;
+    }
+
+    // Por serie
+    html += `<div class="card"><h3>Por serie</h3>
+      <div class="sub">${A.nSess > 1 ? `Total medio de cada serie en ${A.nSess} sesiones` : 'Total de cada serie'} (máx. ${A.m.arrowsPerEnd * 10}). La línea discontinua es tu media. Toca un punto para ver el valor.</div>
+      <svg class="end-svg" id="endSvg" viewBox="0 0 360 170" role="img" aria-label="Puntuación por serie"></svg>
+      <div class="caption" id="endCaption"></div></div>`;
+
+    // Distribución
+    html += `<div class="card"><h3>Distribución de puntuaciones</h3><div class="sub">Cuántas flechas en cada zona.</div>`;
+    const maxD = Math.max(...A.dist.map(d => d[1]), 1);
+    const zoneColor = k => k === 'M' ? '#555' : RING_COLORS[k === 'X' ? 9 : +k - 1];
+    A.dist.forEach(([k, c]) => {
+      html += `<div class="dist-row"><span class="k">${k}</span>
+        <span class="bar"><i style="width:${c / maxD * 100}%;background:${zoneColor(k)}"${c ? '' : ' hidden'}></i></span>
+        <span class="n">${c} · ${Math.round(100 * c / A.all.length)}%</span></div>`;
+    });
+    html += '</div>';
+
+    anaBody.innerHTML = html;
+    drawGroup(A);
+    drawEnds(A);
+
+    anaBody.querySelectorAll('.row[data-kind]').forEach(r => r.addEventListener('click', () => {
+      const v = +r.dataset.v, kind = r.dataset.kind;
+      ana.sel = ana.sel && ana.sel.kind === kind && ana.sel.v === v ? null : { kind, v };
+      anaBody.querySelectorAll('.row[data-kind]').forEach(x =>
+        x.classList.toggle('sel', !!ana.sel && x.dataset.kind === ana.sel.kind && +x.dataset.v === ana.sel.v));
+      drawGroup(A);
+    }));
+  }
+
+  function drawGroup(A) {
+    const svg = document.getElementById('groupSvg');
+    const cap = document.getElementById('groupCaption');
+    svg.innerHTML = '';
+    drawFace(svg);
+    const t = RING * 0.5;
+    const cm = u => fmt(Math.abs(u) * A.cmU);
+    const sel = ana.sel;
+    const isSel = a => !sel || a[sel.kind === 'pos' ? 'pos' : 'n'] === sel.v;
+    const pts = A.pts;
+
+    // Zoom: encuadra el grupo (mínimo 4 anillos visibles) para que se vea bien
+    const reach = Math.max(0, ...pts.map(a => Math.max(Math.abs(a.x - CENTER), Math.abs(a.y - CENTER))));
+    const half = Math.min(FACE_R + 6, Math.max(RING * 4, Math.ceil((reach + RING * 0.8) / RING) * RING));
+    svg.setAttribute('viewBox', `${CENTER - half} ${CENTER - half} ${half * 2} ${half * 2}`);
+    const k = half / 200;                       // escala para que puntos y trazos no cambien de tamaño
+    svg.querySelectorAll('circle').forEach(c => c.setAttribute('stroke-width', k));
+
+    const r = (pts.length > 150 ? 4 : 6) * k;
+    pts.filter(a => !isSel(a)).forEach(a =>
+      svgEl('circle', { cx: a.x, cy: a.y, r, fill: '#6d4aff', 'fill-opacity': .18, stroke: 'none' }, svg));
+    pts.filter(isSel).forEach(a =>
+      svgEl('circle', { cx: a.x, cy: a.y, r, fill: '#6d4aff', 'fill-opacity': sel ? .95 : .7, stroke: '#fff', 'stroke-width': 1.5 * k }, svg));
+
+    // Centro y elipse del conjunto mostrado
+    const shown = pts.filter(isSel);
+    if (shown.length >= 2) {
+      const cx = CENTER + mean(shown.map(a => a.x - CENTER)), cy = CENTER + mean(shown.map(a => a.y - CENTER));
+      const sx = sd(shown.map(a => a.x)), sy = sd(shown.map(a => a.y));
+      const c12 = 12 * k;
+      [['#000', 4], ['#fff', 2]].forEach(([c, w]) => {
+        svgEl('ellipse', { cx, cy, rx: Math.max(sx, 2), ry: Math.max(sy, 2), fill: 'none', stroke: c, 'stroke-width': w * k, 'stroke-dasharray': `${6 * k} ${5 * k}` }, svg);
+        svgEl('path', { d: `M${cx - c12} ${cy}H${cx + c12}M${cx} ${cy - c12}V${cy + c12}`, stroke: c, 'stroke-width': (w + 1) * k, 'stroke-linecap': 'round' }, svg);
+      });
+      const who = !sel ? 'Todas las flechas' : sel.kind === 'pos' ? `${ordinal(sel.v)} flecha de cada serie` : `Flecha nº ${sel.v}`;
+      cap.innerHTML = `<b>${who}</b> <span class="m">(${shown.length} impactos)</span><br>
+        Centro del grupo: <b>${dirText(cx - CENTER, cy - CENTER, t)}</b>${Math.hypot(cx - CENTER, cy - CENTER) > t ? ` <span class="m">(${cm(Math.hypot(cx - CENTER, cy - CENTER))} cm del centro)</span>` : ''}<br>
+        Dispersión: <b>${cm(sy)} cm</b> en vertical · <b>${cm(sx)} cm</b> en horizontal`;
+    } else {
+      cap.innerHTML = shown.length ? '' : '<span class="m">Sin impactos con posición en esta selección.</span>';
+    }
+  }
+
+  function drawEnds(A) {
+    const svg = document.getElementById('endSvg');
+    const cap = document.getElementById('endCaption');
+    const data = A.byEnd;
+    const W = 360, H = 170, L = 34, R = 10, T = 12, B = 26;
+    const vals = data.map(d => d.avg);
+    let lo = Math.floor(Math.min(...vals) - 1), hi = Math.ceil(Math.max(...vals) + 1);
+    hi = Math.min(hi, A.m.arrowsPerEnd * 10); lo = Math.max(0, Math.min(lo, hi - 4));
+    const x = i => data.length === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (data.length - 1);
+    const y = v => T + (hi - v) / (hi - lo) * (H - T - B);
+
+    // Rejilla y ejes (recesivos)
+    const step = Math.max(1, Math.ceil((hi - lo) / 4));
+    for (let v = lo; v <= hi; v += step) {
+      svgEl('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: '#2a2a38', 'stroke-width': 1 }, svg);
+      const tx = svgEl('text', { x: L - 6, y: y(v) + 4, 'text-anchor': 'end', 'font-size': 10, fill: '#9a9aad' }, svg);
+      tx.textContent = v;
+    }
+    const every = Math.ceil(data.length / 12);
+    data.forEach((d, i) => {
+      if (i % every && i !== data.length - 1) return;
+      const tx = svgEl('text', { x: x(i), y: H - 8, 'text-anchor': 'middle', 'font-size': 10, fill: '#9a9aad' }, svg);
+      tx.textContent = d.end + 1;
+    });
+
+    // Media
+    const m = mean(vals);
+    svgEl('line', { x1: L, x2: W - R, y1: y(m), y2: y(m), stroke: '#ffc64d', 'stroke-width': 1.5, 'stroke-dasharray': '5 4' }, svg);
+
+    // Línea + puntos
+    if (data.length > 1) svgEl('polyline', { points: data.map((d, i) => x(i) + ',' + y(d.avg)).join(' '), fill: 'none', stroke: '#8f75ff', 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+    const best = vals.indexOf(Math.max(...vals)), worst = vals.indexOf(Math.min(...vals));
+    const dots = data.map((d, i) => svgEl('circle', { cx: x(i), cy: y(d.avg), r: 4, fill: '#8f75ff', stroke: '#1e1e28', 'stroke-width': 2 }, svg));
+
+    function show(i) {
+      dots.forEach((c, j) => c.setAttribute('r', j === i ? 6 : 4));
+      const d = data[i];
+      cap.innerHTML = `Serie ${d.end + 1}: <b>${fmt(d.avg, A.nSess > 1 ? 1 : 0)}</b> <span class="m">${A.nSess > 1 ? `(media de ${d.n} sesiones)` : ''} · ${d.avg >= m ? '+' : '−'}${fmt(Math.abs(d.avg - m), 1)} vs tu media</span>`;
+    }
+    // Zonas de toque amplias (más grandes que el punto)
+    data.forEach((d, i) => {
+      const hw = data.length === 1 ? 40 : (W - L - R) / (data.length - 1) / 2;
+      const hit = svgEl('rect', { x: x(i) - hw, y: T, width: hw * 2, height: H - T - B, fill: 'transparent', style: 'cursor:pointer' }, svg);
+      hit.addEventListener('click', () => show(i));
+      hit.addEventListener('mouseenter', () => show(i));
+    });
+    cap.innerHTML = data.length > 1
+      ? `Mejor: <b>serie ${data[best].end + 1}</b> (${fmt(vals[best], 1)}) · Peor: <b>serie ${data[worst].end + 1}</b> (${fmt(vals[worst], 1)}) · <span class="m">media ${fmt(m, 1)}</span>`
+      : `Serie 1: <b>${fmt(vals[0], 1)}</b>`;
+  }
+
+  document.querySelectorAll('#anaModeSeg button').forEach(b => b.addEventListener('click', () => {
+    ana.mode = b.dataset.mode; ana.scope = null; ana.sel = null;
+    renderAnalysis();
+  }));
+  anaScope.addEventListener('change', () => { ana.scope = anaScope.value; ana.sel = null; renderAnalysis(); });
+
   // ========================================
   // INICIALIZAR
   // ========================================
-  drawTarget();
+  // Marcar el botón de modalidad recuperado
+  document.querySelectorAll('.mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === config.key));
+
   updateUI();
-  
+
+  // Modo offline / instalable
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+
 })();
 </script>
 </body>
