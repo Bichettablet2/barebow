@@ -30,7 +30,7 @@
   [hidden] { display: none !important; }
   body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
   .header {
-    background: var(--card); padding: 14px; padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    background: var(--card); padding: 8px 14px; padding-top: calc(8px + env(safe-area-inset-top, 0px));
     display: flex; justify-content: space-between; align-items: center;
     border-bottom: 2px solid var(--line); position: sticky; top: 0; z-index: 10;
   }
@@ -39,13 +39,10 @@
   .total-score .label { font-size: .6rem; color: var(--muted); }
   .total-score .value { font-size: 1.3rem; font-weight: bold; color: var(--gold); }
 
-  .mode-select { display: flex; gap: 8px; padding: 10px; }
-  .mode-btn { flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--card); color: var(--muted); font-weight: 600; cursor: pointer; }
+  .mode-select { display: flex; gap: 6px; padding: 8px 8px 4px; align-items: center; }
+  .mode-btn { flex: 1; padding: 8px 6px; border: none; border-radius: 10px; background: var(--card); color: var(--muted); font-weight: 600; font-size: .8rem; cursor: pointer; white-space: nowrap; }
   .mode-btn.active { background: var(--purple); color: #fff; }
-
-  .round-info { display: flex; gap: 10px; padding: 8px 10px; }
-  .round-chip { background: var(--card); padding: 6px 12px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
-  .round-chip.highlight { color: var(--gold); border: 1px solid var(--gold); }
+  .round-chip { background: var(--card); padding: 8px 10px; border-radius: 10px; font-size: .75rem; font-weight: 700; color: var(--gold); white-space: nowrap; }
 
   /* Selector de número de flecha */
   .num-row { display: flex; align-items: center; gap: 6px; padding: 4px 10px; overflow-x: auto; }
@@ -58,48 +55,68 @@
   .num-chip.sel { background: var(--purple); border-color: var(--purple); color: #fff; opacity: 1; }
 
   .target-container {
-    display: flex; justify-content: center; padding: 15px; margin: 10px;
-    background: radial-gradient(circle, #1a1a24 0%, #121218 70%); border-radius: 16px;
+    position: relative; display: flex; justify-content: center; padding: 2px; margin: 4px 4px 0;
   }
-  .target { width: 100%; max-width: 380px; aspect-ratio: 1; position: relative; cursor: crosshair; touch-action: manipulation; }
+  .target {
+    width: 100%; max-width: 560px; aspect-ratio: 1; cursor: crosshair; display: block;
+    touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .zoom-ctl {
+    position: absolute; top: 4px; right: 4px; display: flex; background: rgba(18,18,24,.85);
+    border: 1px solid var(--line); border-radius: 10px; padding: 2px;
+  }
+  .zoom-ctl button { border: none; background: none; color: var(--muted); font-weight: 700; font-size: .72rem; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+  .zoom-ctl button.on { background: var(--purple); color: #fff; }
+  .loupe {
+    position: absolute; width: 130px; height: 130px; border-radius: 50%; overflow: hidden; pointer-events: none;
+    border: 3px solid #fff; box-shadow: 0 6px 24px rgba(0,0,0,.6); background: var(--bg); z-index: 5;
+  }
+  .loupe svg { width: 100%; height: 100%; display: block; }
+  .loupe::before, .loupe::after { content: ''; position: absolute; background: #fff; box-shadow: 0 0 0 1px #000; }
+  .loupe::before { left: 50%; top: 30%; bottom: 30%; width: 2px; margin-left: -1px; }
+  .loupe::after { top: 50%; left: 30%; right: 30%; height: 2px; margin-top: -1px; }
+  .loupe-score {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,.75);
+    color: #fff; font-weight: 800; font-size: .8rem; padding: 1px 8px; border-radius: 8px;
+  }
 
-  .stats-row { display: flex; gap: 8px; padding: 10px; }
-  .stat-card { flex: 1; background: var(--card); border-radius: 10px; padding: 12px; text-align: center; }
-  .stat-card .label { font-size: .6rem; color: var(--muted); text-transform: uppercase; }
-  .stat-card .value { font-size: 1.4rem; font-weight: bold; margin-top: 4px; }
+  .stats-row { display: flex; gap: 6px; padding: 6px 8px; }
+  .stat-card { flex: 1; background: var(--card); border-radius: 10px; padding: 6px; text-align: center; }
+  .stat-card .label { font-size: .58rem; color: var(--muted); text-transform: uppercase; }
+  .stat-card .value { font-size: 1.15rem; font-weight: bold; margin-top: 2px; }
   .stat-card .value.purple { color: var(--purple); }
   .stat-card .value.green { color: var(--green); }
   .stat-card .value.gold { color: var(--gold); }
 
-  .arrows-display { display: flex; gap: 6px; padding: 0 10px 10px; justify-content: center; flex-wrap: wrap; min-height: 40px; }
+  .arrows-display { display: flex; gap: 6px; padding: 0 8px 4px; justify-content: center; flex-wrap: wrap; min-height: 34px; align-items: center; }
   .arrow-pill {
     background: var(--card); border: 1px solid #34344a; border-radius: 16px;
-    padding: 6px 14px; font-weight: 700; font-size: .95rem; min-width: 44px; text-align: center;
+    padding: 4px 12px; font-weight: 700; font-size: .9rem; min-width: 44px; text-align: center;
   }
   .arrow-pill.good { border-color: var(--green); color: var(--green); }
   .arrow-pill.bad { border-color: var(--red); color: var(--red); }
 
-  .btn-row { display: flex; gap: 10px; padding: 10px; }
-  .btn { flex: 1; padding: 14px; border: none; border-radius: 12px; font-size: .95rem; font-weight: 600; cursor: pointer; }
+  .btn-row { display: flex; gap: 8px; padding: 4px 8px; }
+  .btn { flex: 1; padding: 13px; border: none; border-radius: 12px; font-size: .95rem; font-weight: 600; cursor: pointer; }
   .btn:active { opacity: 0.7; }
   .btn-primary { background: var(--purple); color: #fff; }
   .btn-secondary { background: var(--card); color: var(--text); border: 1px solid #34344a; }
   .btn:disabled { opacity: 0.35; pointer-events: none; }
   .btn-miss { flex: 0 0 64px; background: var(--card); color: var(--red); border: 1px solid var(--red); }
 
-  .hint { text-align: center; font-size: .75rem; color: var(--muted); padding: 10px; }
+  .hint { text-align: center; font-size: .72rem; color: var(--muted); padding: 6px 10px; }
 
   .nav {
     position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); z-index: 10;
-    display: flex; justify-content: space-around; padding: 12px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    display: flex; justify-content: space-around; padding: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--line);
   }
   .nav-btn { background: none; border: none; color: var(--muted); font-size: .7rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .nav-btn.active { color: var(--purple); }
   .nav-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; }
 
-  .screen { display: none; padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .screen { display: none; padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
   .screen.active { display: block; }
 
   .history-item { background: var(--card); margin: 10px; padding: 12px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -227,17 +244,20 @@
   <div class="mode-select">
     <button class="mode-btn active" data-mode="indoor">🏠 Sala 18m</button>
     <button class="mode-btn" data-mode="outdoor">🌳 Exterior 50m</button>
-  </div>
-
-  <div class="round-info">
-    <span class="round-chip highlight" id="roundType">Ronda completa</span>
-    <span class="round-chip" id="arrowsRemaining">60 / 60</span>
+    <span class="round-chip" id="arrowsRemaining">0 / 60</span>
   </div>
 
   <div class="num-row" id="numRow" hidden></div>
 
-  <div class="target-container">
+  <div class="target-container" id="targetWrap">
     <svg id="target" class="target" viewBox="0 0 400 400"></svg>
+    <div class="zoom-ctl" id="zoomCtl" aria-label="Zoom de la diana">
+      <button data-z="1">1x</button><button data-z="1.5">1,5x</button><button data-z="2">2x</button>
+    </div>
+    <div class="loupe" id="loupe" hidden>
+      <svg id="loupeSvg" viewBox="0 0 400 400"></svg>
+      <div class="loupe-score" id="loupeScore"></div>
+    </div>
   </div>
 
   <div class="stats-row">
@@ -373,7 +393,7 @@
   let completedEnds = [];
   let totalScore = 0;
   let history = [];
-  let settings = { numbered: false, quiver: 6 };
+  let settings = { numbered: false, quiver: 6, zoom: 1 };
   let selNum = 1;          // número de flecha seleccionado para el próximo impacto
 
   // Cargar historial desde localStorage
@@ -452,19 +472,29 @@
   // ========================================
   // DIBUJAR DIANA
   // ========================================
+  // Zoom: parte visible de la diana (centrada). 1 = diana completa.
+  function viewBox() {
+    const h = (FACE_R + 10) / settings.zoom;
+    return [CENTER - h, CENTER - h, 2 * h, 2 * h];
+  }
+
   function drawTarget() {
     target.innerHTML = '';
+    target.setAttribute('viewBox', viewBox().join(' '));
     drawFace(target);
+    const k = 1 / settings.zoom;   // marcas con el mismo tamaño en pantalla con cualquier zoom
 
     // Flechas disparadas en la serie actual
     arrows.forEach(a => {
       if (a.x == null) return; // fallos (M) sin posición
       const group = svgEl('g', {}, target);
-      svgEl('circle', { cx: a.x, cy: a.y, r: 8, fill: 'rgba(109,74,255,0.4)', stroke: '#6d4aff', 'stroke-width': 2 }, group);
-      const text = svgEl('text', { x: a.x, y: a.y - 12, 'text-anchor': 'middle', 'font-size': 16, 'font-weight': 'bold',
-        fill: '#fff', stroke: '#000', 'stroke-width': 3, 'paint-order': 'stroke' }, group);
+      svgEl('circle', { cx: a.x, cy: a.y, r: 7 * k, fill: 'rgba(109,74,255,0.45)', stroke: '#6d4aff', 'stroke-width': 2 * k }, group);
+      svgEl('circle', { cx: a.x, cy: a.y, r: 1.5 * k, fill: '#fff' }, group);
+      const text = svgEl('text', { x: a.x, y: a.y - 11 * k, 'text-anchor': 'middle', 'font-size': 15 * k, 'font-weight': 'bold',
+        fill: '#fff', stroke: '#000', 'stroke-width': 3 * k, 'paint-order': 'stroke' }, group);
       text.textContent = label(a) + (a.n ? ' ·' + a.n : '');
     });
+    document.querySelectorAll('#zoomCtl button').forEach(b => b.classList.toggle('on', +b.dataset.z === settings.zoom));
   }
 
   // ========================================
@@ -530,17 +560,79 @@
   }
 
   // ========================================
-  // CLICK EN LA DIANA
+  // TOQUE EN LA DIANA (con lupa al arrastrar)
   // ========================================
-  target.addEventListener('click', function(e) {
-    const rect = target.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 400;
-    const y = ((e.clientY - rect.top) / rect.height) * 400;
+  // Pulsa y arrastra: aparece una lupa encima del dedo con la puntuación;
+  // al soltar se registra la flecha. Un toque rápido funciona igual.
+  const loupe = document.getElementById('loupe');
+  const loupeSvg = document.getElementById('loupeSvg');
+  const loupeScore = document.getElementById('loupeScore');
+  const targetWrap = document.getElementById('targetWrap');
+  const LOUPE_PX = 130, LOUPE_MAG = 2.5;
+  let drag = null;
 
-    const result = calculateScore(x, y);
-    // Toques fuera de la diana se ignoran; para un fallo usa el botón M
-    if (result.score > 0 && canShoot()) addArrow({ x, y, ...result });
+  function toSvg(e) {
+    const r = target.getBoundingClientRect();
+    const [vx, vy, vw, vh] = viewBox();
+    return { x: vx + (e.clientX - r.left) / r.width * vw, y: vy + (e.clientY - r.top) / r.height * vh };
+  }
+
+  function moveLoupe(e) {
+    const p = toSvg(e);
+    const r = target.getBoundingClientRect();
+    const region = LOUPE_PX / (r.width / viewBox()[2]) / LOUPE_MAG;   // unidades SVG visibles en la lupa
+    loupeSvg.setAttribute('viewBox', `${p.x - region / 2} ${p.y - region / 2} ${region} ${region}`);
+    const w = targetWrap.getBoundingClientRect();
+    let left = e.clientX - w.left - LOUPE_PX / 2;
+    let top = e.clientY - w.top - LOUPE_PX - 50;          // por encima del dedo
+    if (top < -40) top = e.clientY - w.top + 50;            // sin sitio arriba: debajo
+    left = Math.max(-4, Math.min(left, w.width - LOUPE_PX + 4));
+    loupe.style.left = left + 'px';
+    loupe.style.top = top + 'px';
+    const res = calculateScore(p.x, p.y);
+    loupeScore.textContent = res.score ? (res.isX ? 'X' : res.score) : 'Fuera';
+    loupe.hidden = false;
+  }
+  function hideLoupe() { loupe.hidden = true; }
+
+  target.addEventListener('pointerdown', e => {
+    if (!canShoot() || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    e.preventDefault();
+    try { target.setPointerCapture(e.pointerId); } catch(err) {}
+    // Copia de la diana (anillos + flechas de la serie) para la lupa; las marcas se ven a escala de la lupa
+    loupeSvg.innerHTML = target.innerHTML;
+    drag = { id: e.pointerId, moved: false, x0: e.clientX, y0: e.clientY };
+    // La lupa sale al moverse o al mantener pulsado un instante; en un toque rápido no estorba
+    drag.timer = setTimeout(() => { if (drag) moveLoupe(e); }, 180);
   });
+  target.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 4) return;
+    drag.moved = true;
+    clearTimeout(drag.timer);
+    moveLoupe(e);
+  });
+  target.addEventListener('pointerup', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    clearTimeout(drag.timer);
+    drag = null;
+    hideLoupe();
+    const p = toSvg(e);
+    const result = calculateScore(p.x, p.y);
+    // Fuera de la diana se ignora; para un fallo usa el botón M
+    if (result.score > 0 && canShoot()) addArrow({ x: p.x, y: p.y, ...result });
+  });
+  target.addEventListener('pointercancel', () => {
+    if (drag) clearTimeout(drag.timer);
+    drag = null;
+    hideLoupe();
+  });
+
+  document.querySelectorAll('#zoomCtl button').forEach(b => b.addEventListener('click', () => {
+    settings.zoom = +b.dataset.z;
+    saveSettings();
+    drawTarget();
+  }));
 
   missBtn.addEventListener('click', function() {
     if (canShoot()) addArrow({ x: null, y: null, score: 0, isX: false });
