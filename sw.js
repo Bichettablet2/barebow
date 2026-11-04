@@ -1,6 +1,6 @@
 // Service worker: hace que la app funcione sin conexión.
 // Sube el número de versión cada vez que publiques cambios para que los móviles los reciban.
-const CACHE = 'barebow-v4';
+const CACHE = 'barebow-v5';
 const FILES = [
   './',
   './index.html',

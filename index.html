@@ -380,8 +380,9 @@
   const RING = 19;
   const FACE_R = RING * 10;   // 190
   const X_R = RING / 2;       // anillo X interior
-  const RING_COLORS = ['#ffffff', '#ffffff', '#00b7ee', '#00b7ee', '#1a1a1a',
-                       '#1a1a1a', '#e63946', '#e63946', '#ffcd00', '#ffcd00'];
+  // Colores WA del exterior (1) al interior (10): blanco, negro, azul, rojo, amarillo
+  const RING_COLORS = ['#ffffff', '#ffffff', '#1a1a1a', '#1a1a1a', '#00b7ee',
+                       '#00b7ee', '#e63946', '#e63946', '#ffcd00', '#ffcd00'];
   const SVGNS = 'http://www.w3.org/2000/svg';
 
   // ========================================
@@ -444,7 +445,7 @@
   function drawFace(svg) {
     RING_COLORS.forEach((color, i) => {
       svgEl('circle', { cx: CENTER, cy: CENTER, r: FACE_R - i * RING, fill: color,
-        stroke: i === 4 || i === 5 ? '#666' : '#333', 'stroke-width': 1 }, svg);
+        stroke: i === 3 ? '#bbb' : '#333', 'stroke-width': 1 }, svg);   // línea clara entre los dos anillos negros
     });
     svgEl('circle', { cx: CENTER, cy: CENTER, r: X_R, fill: 'none', stroke: '#333', 'stroke-width': 1 }, svg);
   }
@@ -817,6 +818,7 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('screen-' + screen).classList.add('active');
     window.scrollTo(0, 0);
+    if (screen === 'shoot') fitTarget();
     if (screen === 'history') renderHistory();
     if (screen === 'stats') renderStats();
     if (screen === 'analysis') renderAnalysis();
@@ -886,7 +888,30 @@
     drawTarget();
     renderStats();
     saveCurrent();
+    fitTarget();
   }
+
+  // ========================================
+  // AJUSTAR LA DIANA A LA PANTALLA
+  // ========================================
+  // La diana ocupa todo el ancho, salvo que así los botones (↩︎ Flecha, M, ✓ Serie)
+  // queden tapados por el menú inferior: entonces se encoge lo justo para que se vean.
+  const shootScreen = document.getElementById('screen-shoot');
+  const btnRow = shootScreen.querySelector('.btn-row');
+  const navEl = document.querySelector('.nav');
+  function fitTarget() {
+    if (!shootScreen.classList.contains('active')) return;
+    target.style.width = '';
+    const full = target.getBoundingClientRect().width;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    const limit = vh - navEl.offsetHeight - 6;
+    const btnBottom = btnRow.getBoundingClientRect().bottom + window.scrollY;
+    const excess = btnBottom - limit;
+    if (excess > 0) target.style.width = Math.max(200, Math.floor(full - excess)) + 'px';
+  }
+  window.addEventListener('resize', fitTarget);
+  window.addEventListener('orientationchange', () => setTimeout(fitTarget, 300));
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', fitTarget);
 
   // ========================================
   // TOTAL FLECHAS
