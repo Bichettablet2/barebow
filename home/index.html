@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#121218">
+<meta name="description" content="Barebow Tracker: la app gratuita para registrar tus flechas en sala y exterior. Funciona en iPhone y Android, sin conexión y sin registro.">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<title>Barebow Tracker · App de tiro con arco</title>
+<style>
+  :root {
+    --purple: #6d4aff; --purple-2: #8f75ff;
+    --bg: #121218; --card: #1e1e28; --line: #2a2a38;
+    --text: #f2f2f7; --muted: #9a9aad;
+    --gold: #ffc64d; --green: #34c77b; --red: #ff5b5b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.55;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; }
+
+  header.top { display: flex; align-items: center; justify-content: space-between; padding-block: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; text-decoration: none; }
+  .brand img { width: 36px; height: 36px; border-radius: 9px; }
+  .top a.open { font-size: .9rem; font-weight: 600; color: var(--purple-2); text-decoration: none; }
+
+  .hero {
+    display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center;
+    padding-block: 40px 60px;
+  }
+  .eyebrow { color: var(--gold); font-weight: 700; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.1; margin: 10px 0 16px; letter-spacing: -.02em; }
+  h1 span { color: var(--purple-2); }
+  .lead { color: var(--muted); font-size: 1.1rem; max-width: 34em; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 14px 22px; border-radius: 12px;
+    font-weight: 700; font-size: 1rem; text-decoration: none; border: none; cursor: pointer;
+  }
+  .btn-primary { background: var(--purple); color: #fff; }
+  .btn-primary:hover { background: var(--purple-2); }
+  .btn-ghost { background: var(--card); color: var(--text); border: 1px solid var(--line); }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .badge { font-size: .8rem; color: var(--muted); background: var(--card); border: 1px solid var(--line); padding: 5px 10px; border-radius: 20px; }
+
+  /* Maqueta de móvil */
+  .phone {
+    width: min(300px, 80vw); aspect-ratio: 9 / 18.5; margin: 0 auto; border-radius: 40px;
+    background: #000; padding: 12px; box-shadow: 0 30px 80px rgba(109,74,255,.25), 0 0 0 2px #2c2c3a;
+  }
+  .screen {
+    height: 100%; border-radius: 30px; background: var(--bg); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .s-head { background: var(--card); padding: 22px 14px 10px; display: flex; justify-content: space-between; align-items: end; }
+  .s-head b { color: var(--purple); font-size: .85rem; }
+  .s-head .tot { color: var(--gold); font-weight: 800; font-size: 1.1rem; }
+  .s-target { flex: 1; display: grid; place-items: center; padding: 10px; }
+  .s-target svg { width: 92%; }
+  .s-pills { display: flex; justify-content: center; gap: 6px; padding-bottom: 10px; }
+  .s-pills span { border: 1px solid var(--green); color: var(--green); border-radius: 12px; padding: 2px 10px; font-weight: 700; font-size: .8rem; }
+  .s-nav { background: var(--card); display: flex; justify-content: space-around; padding: 10px 0 16px; font-size: .6rem; color: var(--muted); }
+  .s-nav .on { color: var(--purple-2); }
+
+  section { padding-block: 50px; }
+  h2 { font-size: clamp(1.5rem, 3.5vw, 2rem); margin-bottom: 8px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin-bottom: 28px; }
+
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feature { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+  .feature .ic { font-size: 1.6rem; }
+  .feature h3 { font-size: 1.05rem; margin: 10px 0 6px; }
+  .feature p { color: var(--muted); font-size: .92rem; }
+
+  .install { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .os { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+  .os h3 { margin-bottom: 12px; }
+  .os ol { padding-left: 20px; color: var(--muted); }
+  .os li { margin-bottom: 8px; }
+  .os li strong { color: var(--text); }
+
+  .faq details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; }
+  .faq summary { font-weight: 700; cursor: pointer; }
+  .faq p { color: var(--muted); margin-top: 10px; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 26px; color: var(--muted); font-size: .85rem; text-align: center; }
+
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; padding-block: 20px 40px; text-align: center; }
+    .lead { margin-inline: auto; }
+    .cta, .badges { justify-content: center; }
+    .features, .install { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./"><img src="../icons/icon-192.png" alt="">Barebow Tracker</a>
+    <a class="open" href="../">Abrir la app →</a>
+  </header>
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">App de tiro con arco · Gratis</div>
+      <h1>Cada flecha, <span>anotada</span> en un toque.</h1>
+      <p class="lead">Toca la diana donde ha entrado tu flecha y Barebow Tracker calcula la puntuación, la media y tu récord. Para sala 18&nbsp;m y exterior 50&nbsp;m, en iPhone y Android.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="../">🎯 Abrir la app</a>
+        <button class="btn btn-ghost" id="installBtn" hidden>⬇ Instalar en el móvil</button>
+        <a class="btn btn-ghost" href="#instalar" id="howBtn">📲 Cómo instalarla</a>
+      </div>
+      <div class="badges">
+        <span class="badge">Sin registro</span>
+        <span class="badge">Funciona sin conexión</span>
+        <span class="badge">Sin anuncios</span>
+        <span class="badge">Tus datos se quedan en tu móvil</span>
+      </div>
+    </div>
+
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <div class="s-head"><b>Barebow Tracker</b><span class="tot">527</span></div>
+        <div class="s-target">
+          <svg viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="95" fill="#fff" stroke="#333"/>
+            <circle cx="100" cy="100" r="76" fill="#1a1a1a" stroke="#333"/>
+            <circle cx="100" cy="100" r="57" fill="#00b7ee" stroke="#333"/>
+            <circle cx="100" cy="100" r="38" fill="#e63946" stroke="#333"/>
+            <circle cx="100" cy="100" r="19" fill="#ffcd00" stroke="#333"/>
+            <circle cx="104" cy="94" r="5" fill="rgba(109,74,255,.5)" stroke="#6d4aff" stroke-width="2"/>
+            <circle cx="88" cy="110" r="5" fill="rgba(109,74,255,.5)" stroke="#6d4aff" stroke-width="2"/>
+            <circle cx="118" cy="120" r="5" fill="rgba(109,74,255,.5)" stroke="#6d4aff" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="s-pills"><span>X</span><span>10</span><span>9</span></div>
+        <div class="s-nav"><span class="on">● Tiro</span><span>Stats</span><span>Histórico</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <h2>Todo lo que necesitas en la línea de tiro</h2>
+    <p class="sub">Sin hojas de papel ni calculadora: céntrate en tirar.</p>
+    <div class="features">
+      <div class="feature"><div class="ic">🎯</div><h3>Anotación sobre la diana</h3><p>Toca el punto de impacto y la puntuación se calcula sola, X incluidas. Botón M para los fallos.</p></div>
+      <div class="feature"><div class="ic">🏠</div><h3>Sala y exterior</h3><p>Sala 18&nbsp;m (60 flechas, series de 3) y exterior 50&nbsp;m (72 flechas, series de 6).</p></div>
+      <div class="feature"><div class="ic">📈</div><h3>Análisis y consejos</h3><p>Mapa de agrupación, análisis por flecha numerada, por orden en la serie y por serie. Detecta flechas dañadas, fatiga y desvíos, y te dice qué revisar.</p></div>
+      <div class="feature"><div class="ic">🗂️</div><h3>Histórico de sesiones</h3><p>Guarda cada sesión con fecha, series y media para ver cómo progresas.</p></div>
+      <div class="feature"><div class="ic">✈️</div><h3>Sin conexión</h3><p>Una vez instalada funciona sin cobertura: ideal para campos de tiro al aire libre.</p></div>
+      <div class="feature"><div class="ic">🔒</div><h3>Privada</h3><p>Sin cuentas ni servidores: tus puntuaciones solo se guardan en tu móvil.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="instalar">
+  <div class="wrap">
+    <h2>Instálala en tu móvil</h2>
+    <p class="sub">No hace falta tienda de aplicaciones. Queda en tu pantalla de inicio como cualquier otra app.</p>
+    <div class="install">
+      <div class="os">
+        <h3>📱 iPhone / iPad</h3>
+        <ol>
+          <li>Abre <strong>esta página en Safari</strong>.</li>
+          <li>Pulsa el botón <strong>Compartir</strong> (cuadrado con flecha hacia arriba).</li>
+          <li>Elige <strong>Añadir a pantalla de inicio</strong> y confirma con <strong>Añadir</strong>.</li>
+        </ol>
+      </div>
+      <div class="os">
+        <h3>🤖 Android</h3>
+        <ol>
+          <li>Abre esta página en <strong>Chrome</strong>.</li>
+          <li>Pulsa <strong>Instalar en el móvil</strong> arriba, o el menú <strong>⋮</strong>.</li>
+          <li>Elige <strong>Instalar aplicación</strong> (o <strong>Añadir a pantalla de inicio</strong>).</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="wrap">
+    <h2>Preguntas frecuentes</h2>
+    <details><summary>¿Es gratis?</summary><p>Sí, completamente gratis y sin anuncios.</p></details>
+    <details><summary>¿Pierdo los datos si cierro la app?</summary><p>No. La sesión en curso y el histórico se guardan en el móvil automáticamente. Sí se pierden si borras los datos del navegador o desinstalas la app.</p></details>
+    <details><summary>¿Puedo usarla en el ordenador?</summary><p>Sí, funciona en cualquier navegador moderno, aunque está pensada para el móvil.</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">Barebow Tracker · <a href="../">Abrir la app</a></div>
+</footer>
+
+<script>
+  // Botón de instalación (Chrome / Edge / Android)
+  let deferred = null;
+  const installBtn = document.getElementById('installBtn');
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferred = e;
+    installBtn.hidden = false;
+  });
+  installBtn.addEventListener('click', async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    await deferred.userChoice;
+    deferred = null;
+    installBtn.hidden = true;
+  });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(() => {});
+</script>
+</body>
+</html>
